@@ -2,7 +2,7 @@ from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
 from datetime import datetime, timedelta
-import pandas as pd
+from numpy import random
 import zipfile
 
 default_args = {
@@ -23,59 +23,45 @@ dag = DAG(
     schedule_interval=None
 )
 
+def get_data():
+    return random.randint(42, size=5).tolist()
 
-get_data = BashOperator(
-    task_id="get-data",
-    bash_command='curl http://download.inep.gov.br/microdados/Enade_Microdados/microdados_enade_2019.zip -o /usr/local/airflow/data/microdados_enade_2019.zip',
-    trigger_rule="all_done",
+get_data = PythonOperator(
+    task_id='get_data',
+    python_callable=get_data,
+    dag=dag
+)
+
+def get_odds(**context):
+    arr = context['task_instance'].xcom_pull(task_ids='get_data')
+    return list(filter(lambda x: x % 2 != 0, arr))
+
+get_odds = PythonOperator(
+    task_id='get_odds',
+    python_callable=get_odds,
+    dag=dag
+)
+
+def get_evens(**context):
+    arr = context['task_instance'].xcom_pull(task_ids='get_data')
+    return list(filter(lambda x: x % 2 == 0, arr))
+
+get_evens = PythonOperator(
+    task_id='get_evens',
+    python_callable=get_evens,
+    dag=dag
+)
+
+def join_numbers(**context):
+    odds = context['task_instance'].xcom_pull(task_ids='get_odds')
+    evens = context['task_instance'].xcom_pull(task_ids='get_evens')
+    print({odds, evens})
+
+join_numbers = PythonOperator(
+    task_id='join_numbers',
+    python_callable=join_numbers,
     dag=dag
 )
 
 
-def unzip_file():
-    with zipfile.ZipFile("/usr/local/airflow/data/microdados_enade_2019.zip", 'r') as zipped:
-        zipped.extractall("/usr/local/airflow/data")
-
-unzip_data = PythonOperator(
-    task_id='unzip-data',
-    python_callable=unzip_file,
-    dag=dag
-)
-
-def calculate_mean_age():
-    df = pd.read_csv('/usr/local/airflow/data/microdados_enade_2019/2019/3.DADOS/microdados_enade_2019.txt', sep=';', decimal=',')
-    print("Estas são as colunas do dataset Enade:")
-    print(df.columns)
-    print('Calculando a idade média dos alunos:')
-    med = df.NU_IDADE.mean()
-    return med
-
-task_calculate_mean = PythonOperator(
-    task_id='calculate-mean-age',
-    python_callable=calculate_mean_age,
-    dag=dag
-)
-
-def print_age(**context):
-    value = context['task_instance'].xcom_pull(task_ids='calculate-mean-age')
-    print(f"Idade média dos alunos no Enade 2019 foi {value}")
-
-task_mean_age = PythonOperator(
-    task_id="say-mean-age",
-    python_callable=print_age,
-    provide_context=True,
-    dag=dag
-)
-
-def print_age_sq(**context):
-    value = context['task_instance'].xcom_pull(task_ids='calculate-mean-age')
-    print(f"Idade média ao quadrado {value**2}")
-
-task_age_sq = PythonOperator(
-    task_id="say-age-squared",
-    python_callable=print_age_sq,
-    provide_context=True,
-    dag=dag
-)
-
-get_data >> unzip_data >> task_calculate_mean >> [task_mean_age, task_age_sq]
+get_data >> [get_odds, get_evens] >> join_numbers
