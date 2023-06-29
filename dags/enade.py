@@ -1,14 +1,13 @@
 from airflow import DAG
 from airflow.operators.bash_operator import BashOperator
 from airflow.operators.python_operator import PythonOperator
-from datetime import datetime, timedelta
+from datetime import datetime
 from numpy import random
 import zipfile
 
 default_args = {
     'owner': 'Danilo Téo',
     "depends_on_past": False,
-    "start_date": datetime(2020, 11, 14, 23, 50),
     "email": ["airflow@airflow.com"],
     "email_on_failure": False,
     "email_on_retry": False
