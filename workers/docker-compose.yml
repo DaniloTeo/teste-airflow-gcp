@@ -91,7 +91,7 @@ services:
       DUMB_INIT_SETSID: "0"
     restart: always
     volumes:
-      - worker_logs: ./airflow/logs
+      - worker_logs:/airflow/logs 
     depends_on:
       <<: *airflow-common-depends-on
 volumes:
