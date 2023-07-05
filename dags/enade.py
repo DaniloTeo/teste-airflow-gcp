@@ -1,6 +1,5 @@
 from airflow import DAG
-from airflow.operators.bash_operator import BashOperator
-from airflow.operators.python_operator import PythonOperator
+from airflow.operators.python import PythonOperator, get_current_context
 from datetime import datetime
 from numpy import random
 import zipfile
@@ -31,7 +30,8 @@ get_data = PythonOperator(
     dag=dag
 )
 
-def get_odds(**context):
+def get_odds():
+    context = get_current_context()
     arr = context['task_instance'].xcom_pull(task_ids='get_data')
     return list(filter(lambda x: x % 2 != 0, arr))
 
@@ -41,7 +41,8 @@ get_odds = PythonOperator(
     dag=dag
 )
 
-def get_evens(**context):
+def get_evens():
+    context = get_current_context()
     arr = context['task_instance'].xcom_pull(task_ids='get_data')
     return list(filter(lambda x: x % 2 == 0, arr))
 
@@ -51,7 +52,8 @@ get_evens = PythonOperator(
     dag=dag
 )
 
-def join_numbers(**context):
+def join_numbers():
+    context = get_current_context()
     odds = context['task_instance'].xcom_pull(task_ids='get_odds')
     evens = context['task_instance'].xcom_pull(task_ids='get_evens')
     print({odds, evens})
