@@ -9,7 +9,8 @@ default_args = {
     "depends_on_past": False,
     "email": ["airflow@airflow.com"],
     "email_on_failure": False,
-    "email_on_retry": False
+    "email_on_retry": False,
+    "start_date": datetime(2020, 11, 14, 23, 50),
     #"retries": 1,
     #"retry_delay": timedelta(minutes=1),
 }
