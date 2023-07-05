@@ -94,4 +94,6 @@ services:
       - worker_logs: ./airflow/logs
     depends_on:
       <<: *airflow-common-depends-on
+volumes:
+  worker_logs:
 
